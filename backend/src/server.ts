@@ -5,7 +5,7 @@ import expressRateLimit from "express-rate-limit";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import { dbConnect } from "./configs/db.config.ts";
+import { dbConnect } from "./config/db.config.ts";
 
 dotenv.config();
 
