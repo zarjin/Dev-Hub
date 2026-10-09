@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@config "../tailwind.config.js";
+
+@theme {
+  --color-devhub-50: #f0f5ff;
+  --color-devhub-100: #e5edff;
+  --color-devhub-200: #cddbfe;
+  --color-devhub-300: #b4c6fc;
+  --color-devhub-400: #819efa;
+  --color-devhub-500: #4f6bf5;
+  --color-devhub-600: #3850e0;
+  --color-devhub-700: #283bbd;
+  --color-devhub-800: #1e2d96;
+  --color-devhub-900: #172273;
+  --color-devhub-950: #0c1240;
+
+  --color-surface-darkest: #080B11;
+  --color-surface-background: #0B0F17;
+  --color-surface-card: #121722;
+  --color-surface-elevated: #171E2D;
+  --color-surface-hover: #1E2638;
+  --color-surface-border: #232C3D;
+  --color-surface-borderLight: #2F3B52;
+  --color-surface-border-light: #2F3B52;
+
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-glow: 0 0 20px -5px rgba(79, 107, 245, 0.4);
+  --shadow-glowGreen: 0 0 20px -5px rgba(16, 185, 129, 0.4);
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+
+  --animate-fade-in: fadeIn 0.2s ease-out forwards;
+  --animate-slide-up: slideUp 0.25s ease-out forwards;
+  --animate-pulse-subtle: pulseSubtle 2s infinite ease-in-out;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes slideUp {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseSubtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+}
+
+@layer base {
+  * {
+    border-color: #232C3D;
+  }
+  
+  body {
+    background-color: #0B0F17;
+    color: #F1F5F9;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar for developer SaaS aesthetic */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0B0F17;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #232C3D;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3850e0;
+  }
+}
+
+.glass {
+  background: rgba(18, 23, 34, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card {
+  background: rgba(18, 23, 34, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-elevated {
+  background: rgba(23, 30, 45, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.subtle-border {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.badge-glow {
+  box-shadow: 0 0 10px -2px currentColor;
+}
