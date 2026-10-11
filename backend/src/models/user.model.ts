@@ -5,6 +5,7 @@ export interface IUser {
   username: string;
   email: string;
   password: string;
+  role: string;
   avatar?: string;
   isActive: boolean;
   lastLogin?: Date | null;
@@ -40,6 +41,18 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       select: false,
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: [
+        "developer",
+        "frontend developer",
+        "backend developer",
+        "full-stack developer",
+        "team leader",
+      ],
+      default: "developer",
     },
     avatar: {
       type: String,
