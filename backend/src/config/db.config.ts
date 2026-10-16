@@ -1,18 +1,13 @@
-import mongoose from "mongoose";
+import { Pool } from "pg";
+export const pool = new Pool({
+  connectionString: "postgres://postgres:6601@localhost:5432/Dev-Hub",
+});
 
-export const dbConnect = async (): Promise<void> => {
-  const mongoUri = process.env.MONGO_URI;
+pool.on("connect", () => {
+  console.log("Connected to PostgreSQL");
+});
 
-  if (!mongoUri) {
-    throw new Error("MONGO_URI is not defined");
-  }
-
-  try {
-    const conn = await mongoose.connect(mongoUri);
-
-    console.log(`Connected to MongoDB: ${conn.connection.host}`);
-  } catch (error: unknown) {
-    console.error("Error connecting to MongoDB:", error);
-    throw error;
-  }
-};
+pool.on("error", (err) => {
+  console.error("Unexpected PostgreSQL error:", err);
+  process.exit(-1);
+});

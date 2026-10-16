@@ -5,11 +5,11 @@ import expressRateLimit from "express-rate-limit";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import { dbConnect } from "./config/db.config.ts";
+import { pool } from "./config/db.config.ts";
 
 dotenv.config();
 
-dbConnect();
+pool.connect();
 
 const app = express();
 const server = createServer(app);
