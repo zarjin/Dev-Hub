@@ -5,6 +5,8 @@ import expressRateLimit from "express-rate-limit";
 import cors from "cors";
 import dotenv from "dotenv";
 
+import authRouter from "./routes/auth.routes.ts";
+
 import { pool } from "./config/db.config.ts";
 
 dotenv.config();
@@ -34,5 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", (_req, res) => {
   res.send("Hello World!");
 });
+
+app.use("/api/auth", authRouter);
 
 export { server };
