@@ -6,6 +6,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import authRouter from "./routes/auth.routes.ts";
+import userRouter from "./routes/user.routes.ts";
 
 import { pool } from "./config/db.config.ts";
 
@@ -38,5 +39,6 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/v1/api/auth", authRouter);
+app.use("/v1/api", userRouter);
 
 export { server };
