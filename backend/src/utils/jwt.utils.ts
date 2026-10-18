@@ -3,9 +3,11 @@ import JWT from "jsonwebtoken";
 //Access Token
 export const generateAccessToken = (payload: object, secret: string) => {
   try {
-    return JWT.sign(payload, secret, {
-      expiresIn: "15m",
+    const token = JWT.sign(payload, secret, {
+      expiresIn: "7d",
     });
+    console.log("[jwt] Access token generated");
+    return token;
   } catch (error) {
     console.error("JWT Signing Error:", error);
     throw new Error("Failed to generate access token.");
@@ -14,7 +16,9 @@ export const generateAccessToken = (payload: object, secret: string) => {
 
 export const verifyAccessToken = (token: string, secret: string) => {
   try {
-    return JWT.verify(token, secret);
+    const decoded = JWT.verify(token, secret);
+    console.log("[jwt] Access token verified");
+    return decoded;
   } catch (error) {
     console.error("JWT Verify Error:", error);
     throw new Error("Failed to Verify Access Token");
@@ -24,9 +28,11 @@ export const verifyAccessToken = (token: string, secret: string) => {
 //Refresh Token
 export const generateRefreshToken = (payload: object, secret: string) => {
   try {
-    return JWT.sign(payload, secret, {
-      expiresIn: "15m",
+    const token = JWT.sign(payload, secret, {
+      expiresIn: "7d",
     });
+    console.log("[jwt] Refresh token generated");
+    return token;
   } catch (error) {
     console.error("JWT Signing Error:", error);
     throw new Error("Failed to generate refresh token.");
@@ -35,7 +41,9 @@ export const generateRefreshToken = (payload: object, secret: string) => {
 
 export const verifyRefreshToken = (token: string, secret: string) => {
   try {
-    return JWT.verify(token, secret);
+    const decoded = JWT.verify(token, secret);
+    console.log("[jwt] Refresh token verified");
+    return decoded;
   } catch (error) {
     console.error("JWT Verify Error:", error);
     throw new Error("Failed to Verify refresh token.");
@@ -44,7 +52,9 @@ export const verifyRefreshToken = (token: string, secret: string) => {
 
 export const verifyToken = (token: string, secret: string) => {
   try {
-    return JWT.verify(token, secret);
+    const decoded = JWT.verify(token, secret);
+    console.log("[jwt] Token verified");
+    return decoded;
   } catch (error) {
     console.error("JWT Verify Error:", error);
     throw new Error("Failed to Verify Token");

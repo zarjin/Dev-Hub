@@ -7,7 +7,6 @@ declare global {
       user?: {
         id: string;
         email: string;
-        role?: string;
       };
     }
   }
@@ -18,36 +17,74 @@ export const authentication = (
   res: Response,
   next: NextFunction,
 ): void => {
+  const authHeader = req.headers.authorization;
+
+  console.log("[auth.middleware] Authentication request received", {
+    authorizationHeaderPresent: Boolean(authHeader),
+  });
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    console.log("[auth.middleware] Missing or malformed Bearer authorization header");
+    res.status(401).json({
+      success: false,
+      message: "Authentication token missing or invalid",
+    });
+    return;
+  }
+
+  const token = authHeader.slice(7).trim();
+
+  console.log("[auth.middleware] Bearer token extracted", {
+    tokenPresent: Boolean(token),
+    tokenLength: token.length,
+  });
+
+  if (!token) {
+    console.log("[auth.middleware] Bearer token is empty");
+    res.status(401).json({
+      success: false,
+      message: "Authentication token is required",
+    });
+    return;
+  }
+
+  const secret = process.env.ACCESS_TOKEN_SECRET;
+
+  if (!secret) {
+    console.error("[auth.middleware] ACCESS_TOKEN_SECRET is not configured");
+    res.status(500).json({
+      success: false,
+      message: "JWT secret is not configured",
+    });
+    return;
+  }
+
+  console.log("[auth.middleware] Verifying access token");
+
   try {
-    const authHeader = req.headers.authorization;
+    const decoded = verifyToken(token, secret);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res
-        .status(401)
-        .json({ message: "Authentication token missing or invalid" });
-      return;
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    if (!token) {
+    if (!decoded || typeof decoded === "string") {
+      console.log("[auth.middleware] Token payload is not an object");
       res.status(401).json({
         success: false,
-        message: "Authentication token is required",
+        message: "Invalid authentication token",
       });
       return;
     }
 
-    const decoded = verifyToken(token, process.env.JWT_TOKEN as string);
+    const userId =
+      typeof decoded.id === "string"
+        ? decoded.id
+        : typeof decoded.id === "number" && Number.isSafeInteger(decoded.id)
+          ? String(decoded.id)
+          : undefined;
 
-    if (
-      !decoded ||
-      typeof decoded === "string" ||
-      !("id" in decoded) ||
-      !("email" in decoded) ||
-      typeof decoded.id !== "string" ||
-      typeof decoded.email !== "string"
-    ) {
+    if (!userId || typeof decoded.email !== "string") {
+      console.log("[auth.middleware] Token payload is missing required claims", {
+        idType: typeof decoded.id,
+        emailType: typeof decoded.email,
+      });
       res.status(401).json({
         success: false,
         message: "Invalid authentication token",
@@ -56,16 +93,14 @@ export const authentication = (
     }
 
     req.user = {
-      id: decoded.id,
+      id: userId,
       email: decoded.email,
-      role:
-        "role" in decoded && typeof decoded.role === "string"
-          ? decoded.role
-          : undefined,
     };
 
+    console.log("[auth.middleware] Access token verified");
     next();
-  } catch {
+  } catch (error) {
+    console.error("[auth.middleware] Access token verification failed", error);
     res.status(401).json({
       success: false,
       message: "Invalid or expired authentication token",

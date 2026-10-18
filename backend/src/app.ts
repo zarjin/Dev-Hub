@@ -37,6 +37,6 @@ app.get("/", (_req, res) => {
   res.send("Hello World!");
 });
 
-app.use("/api/auth", authRouter);
+app.use("/v1/api/auth", authRouter);
 
 export { server };
