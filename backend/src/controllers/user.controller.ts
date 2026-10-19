@@ -21,7 +21,9 @@ export const updateUser = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deleteUser = await pool.query("DELETE FROM users WHERE id = $1", [id]);
+    const deleteUser = await pool.query("DELETE FROM users WHERE id = $1", [
+      id,
+    ]);
     res.json({ message: "User deleted successfully", user: deleteUser });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -39,6 +41,16 @@ export const getUserById = async (req: Request, res: Response) => {
     res.json({ user: user.rows[0] });
   } catch (error) {
     console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await pool.query("SELECT * FROM users");
+    res.json({ users: users.rows });
+  } catch (error) {
+    console.error("Error fetching users:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
