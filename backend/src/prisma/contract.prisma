@@ -1,0 +1,255 @@
+// use prisma-8
+
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  DEVELOPER
+  DESIGNER
+  BACKEND_DEVELOPER
+  FRONTEND_DEVELOPER
+  FULLSTACK_DEVELOPER
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TeamRole {
+  LEADER
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum NotificationType {
+  ORGANIZATION_INVITATION
+  TEAM_INVITATION
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  GENERAL
+}
+
+// ==========================================
+// USER
+// ==========================================
+
+model User {
+  id        String   @id @onCreate(cuid(2))
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  password  String
+  avatar    String?
+  role      UserRole @default(DEVELOPER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @onCreate(now()) @onUpdate(now())
+
+  organizations OrganizationMember[]
+  teams         TeamMember[]
+  createdTasks  Task[]              @relation("TaskCreator")
+  assignedTasks TaskAssignee[]
+  sentInvitations Invitation[]     @relation("InvitationSender")
+
+  notifications     Notification[] @relation("NotificationRecipient")
+  actedNotifications Notification[] @relation("NotificationActor")
+
+  @@index([username])
+}
+
+// ==========================================
+// ORGANIZATION
+// ==========================================
+
+model Organization {
+  id          String   @id @onCreate(cuid(2))
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @onCreate(now()) @onUpdate(now())
+
+  members     OrganizationMember[]
+  teams       Team[]
+  invitations Invitation[]
+}
+
+// ==========================================
+// ORGANIZATION MEMBER
+// ==========================================
+
+model OrganizationMember {
+  id             String           @id @onCreate(cuid(2))
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(MEMBER)
+
+  joinedAt DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, role])
+}
+
+// ==========================================
+// TEAM
+// ==========================================
+
+model Team {
+  id             String  @id @onCreate(cuid(2))
+  name           String
+  description    String?
+  organizationId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @onCreate(now()) @onUpdate(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  tasks        Task[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ==========================================
+// TEAM MEMBER
+// ==========================================
+
+model TeamMember {
+  id     String   @id @onCreate(cuid(2))
+  userId String
+  teamId String
+  role   TeamRole @default(MEMBER)
+
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([teamId, role])
+}
+
+// ==========================================
+// TASK
+// ==========================================
+
+model Task {
+  id          String       @id @onCreate(cuid(2))
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+
+  teamId      String
+  createdById String
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @onCreate(now()) @onUpdate(now())
+
+  team      Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignees TaskAssignee[]
+
+  @@index([teamId, status])
+  @@index([createdById])
+  @@index([dueDate])
+}
+
+// ==========================================
+// TASK ASSIGNEE
+// ==========================================
+
+model TaskAssignee {
+  id     String @id @onCreate(cuid(2))
+  taskId String
+  userId String
+
+  assignedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+// ==========================================
+// INVITATION
+// ==========================================
+
+model Invitation {
+  id             String           @id @onCreate(cuid(2))
+  email          String
+  tokenHash      String           @unique
+  role           OrganizationRole @default(MEMBER)
+  status         InvitationStatus @default(PENDING)
+
+  organizationId String
+  invitedById    String
+
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([email, status])
+  @@index([organizationId, status])
+}
+
+// ==========================================
+// NOTIFICATION
+// ==========================================
+
+model Notification {
+  id          String           @id @onCreate(cuid(2))
+  title       String
+  message     String
+  type        NotificationType @default(GENERAL)
+  isRead      Boolean          @default(false)
+
+  recipientId String
+  actorId     String?
+
+  createdAt DateTime @default(now())
+
+  recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, isRead, createdAt])
+}
