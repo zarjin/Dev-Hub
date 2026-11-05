@@ -1,6 +1,7 @@
 import {
   generateAccessToken,
   generateRefreshToken,
+  verifyRefreshToken,
 } from "./../utils/jwt.utils";
 import type { Request, Response } from "express";
 import { db } from "../prisma/db";
@@ -64,14 +65,6 @@ export const userLogin = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
-      path: "/",
-    });
-
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env["NODE_ENV"] === "production",
@@ -82,19 +75,46 @@ export const userLogin = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
+      accessToken: accessToken,
       message: "Login successful",
     });
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "user login error" });
+  }
 };
 
-export const userLogout = async (req: Request, res: Response) => {
+export const userLogout = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-  } catch (error) {}
-};
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: "strict",
+    });
 
+    res.status(200).json({
+      success: true,
+      message: "User logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "User logout error",
+    });
+  }
+};
 export const checkAuthStatus = async (req: Request, res: Response) => {
   try {
-  } catch (error) {}
+    return res.status(200).json({ authaction: true });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "user is authactions" });
+  }
 };
 
 export const refreshToAccessTokenGenerate = async (
@@ -102,5 +122,15 @@ export const refreshToAccessTokenGenerate = async (
   res: Response,
 ) => {
   try {
-  } catch (error) {}
+    const token = req.cookies["refreshToken"];
+
+    const decode = verifyRefreshToken(token);
+
+    const accessToken = generateAccessToken(decode as object);
+
+    res.status(200).json({ accessToken });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "generate access token error" });
+  }
 };
