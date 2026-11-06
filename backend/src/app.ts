@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
 
+import authRoute from "./routes/aut.routes";
+
 dotenv.config();
 
 const app: Express = express();
@@ -32,5 +34,7 @@ app.get("/", (_req, res) => {
     message: "Server is Running 🚀",
   });
 });
+
+app.use("auth/api/v1", authRoute);
 
 export default app;

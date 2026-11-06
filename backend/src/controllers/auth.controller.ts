@@ -10,15 +10,15 @@ import { comparePassword, hashingPassword } from "../utils/bcrypt.utils";
 export const userRegister = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
-    const exstingUser = await db.orm.public.User.where({
+    const existingUser = await db.orm.public.User.where({
       email,
       username,
     });
 
-    if (exstingUser) {
-      console.log("user all ready exsting");
+    if (existingUser) {
+      console.log("user all ready existing");
       return res.status(409).json({
-        message: "user is already exsting",
+        message: "user is already existing",
       });
     }
 
@@ -30,40 +30,48 @@ export const userRegister = async (req: Request, res: Response) => {
       password: hashPassword,
     });
 
-    return res.status(200).json({ message: "user created succesfully", user });
+    return res.status(200).json({ message: "user created successfully", user });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "user create unsuccessfuly" });
+    res.status(500).json({ message: "user create unsuccessfully" });
   }
 };
 
 export const userLogin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    const exstingUser = await db.orm.public.User.where({
+    const existingUser = await db.orm.public.User.where({
       email,
     });
 
     const match = await comparePassword(
       password,
-      exstingUser._row?.password as string,
+      existingUser._row?.password as string,
     );
 
     if (!match) {
-      res.status(500).json({ message: "invaild Password" });
+      res.status(500).json({ message: "invalid Password" });
     }
 
     const payload = {
-      id: exstingUser._row?.id,
-      email: exstingUser._row?.email,
-      username: exstingUser._row?.username,
+      id: existingUser._row?.id,
+      email: existingUser._row?.email,
+      username: existingUser._row?.username,
     };
-    if (!exstingUser) {
+    if (!existingUser) {
       return res.status(404).json({ message: "user is not found" });
     }
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env["NODE_ENV"] === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
