@@ -1,144 +1,257 @@
+import type { Request, Response } from "express";
+
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
-} from "./../utils/jwt.utils";
-import type { Request, Response } from "express";
-import { db } from "../prisma/db";
+} from "../utils/jwt.utils";
+
 import { comparePassword, hashingPassword } from "../utils/bcrypt.utils";
+
+import { db } from "../prisma/db";
+
+// ==========================================
+// COOKIE CONFIGURATION
+// ==========================================
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env["NODE_ENV"] === "production",
+  sameSite: "strict" as const,
+  path: "/",
+};
+
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
+// ==========================================
+// REGISTER USER
+// ==========================================
 
 export const userRegister = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
-    const existingUser = await db.orm.public.User.where({
-      email,
-      username,
-    });
 
-    if (existingUser) {
-      console.log("user all ready existing");
-      return res.status(409).json({
-        message: "user is already existing",
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
       });
     }
 
-    const hashPassword = await hashingPassword(password);
+    // Check existing email
+    const existingEmail = await db.orm.public.User.where({
+      email,
+    });
 
+    if (existingEmail?._row) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    // Check existing username
+    const existingUsername = await db.orm.public.User.where({
+      username,
+    });
+
+    if (existingUsername?._row) {
+      return res.status(409).json({
+        success: false,
+        message: "Username already exists",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await hashingPassword(password);
+
+    // Create user
     const user = await db.orm.public.User.create({
       username,
       email,
-      password: hashPassword,
+      password: hashedPassword,
     });
 
-    return res.status(200).json({ message: "user created successfully", user });
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      user,
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "user create unsuccessfully" });
+    console.error("Register Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "User registration failed",
+    });
   }
 };
+
+// ==========================================
+// LOGIN USER
+// ==========================================
 
 export const userLogin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Find user
     const existingUser = await db.orm.public.User.where({
       email,
     });
 
-    const match = await comparePassword(
-      password,
-      existingUser._row?.password as string,
-    );
-
-    if (!match) {
-      res.status(500).json({ message: "invalid Password" });
+    if (!existingUser || !existingUser._row) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
     }
 
+    const user = existingUser._row;
+
+    // Compare password
+    const isPasswordValid = await comparePassword(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // JWT payload
     const payload = {
-      id: existingUser._row?.id,
-      email: existingUser._row?.email,
-      username: existingUser._row?.username,
+      id: user.id,
+      email: user.email,
+      username: user.username,
     };
-    if (!existingUser) {
-      return res.status(404).json({ message: "user is not found" });
-    }
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
+    // Set access cookie
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
+      ...cookieOptions,
+      maxAge: COOKIE_MAX_AGE,
     });
 
+    // Set refresh cookie
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
+      ...cookieOptions,
+      maxAge: COOKIE_MAX_AGE,
     });
 
     return res.status(200).json({
       success: true,
-      accessToken: accessToken,
       message: "Login successful",
+      accessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "user login error" });
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
+    });
   }
 };
 
+// ==========================================
+// LOGOUT USER
+// ==========================================
+
 export const userLogout = async (
-  req: Request,
+  _req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: "strict",
-    });
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     res.status(200).json({
       success: true,
-      message: "User logged out successfully",
+      message: "Logout successful",
     });
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("Logout Error:", error);
 
     res.status(500).json({
       success: false,
-      message: "User logout error",
+      message: "Logout failed",
     });
   }
 };
-export const checkAuthStatus = async (req: Request, res: Response) => {
+
+// ==========================================
+// CHECK AUTH STATUS
+// ==========================================
+
+export const checkAuthStatus = async (_req: Request, res: Response) => {
   try {
-    return res.status(200).json({ authaction: true });
+    return res.status(200).json({
+      success: true,
+      authenticated: true,
+    });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "user is authactions" });
+    console.error("Auth Status Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Authentication status check failed",
+    });
   }
 };
+
+// ==========================================
+// REFRESH ACCESS TOKEN
+// ==========================================
 
 export const refreshToAccessTokenGenerate = async (
   req: Request,
   res: Response,
 ) => {
   try {
-    const token = req.cookies["refreshToken"];
+    const refreshToken = req.cookies?.["refreshToken"];
 
-    const decode = verifyRefreshToken(token);
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token not found",
+      });
+    }
 
-    const accessToken = generateAccessToken(decode as object);
+    const decoded = verifyRefreshToken(refreshToken);
 
-    res.status(200).json({ accessToken });
+    const accessToken = generateAccessToken(decoded as object);
+
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: COOKIE_MAX_AGE,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Access token refreshed successfully",
+      accessToken,
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "generate access token error" });
+    console.error("Refresh Token Error:", error);
+
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired refresh token",
+    });
   }
 };

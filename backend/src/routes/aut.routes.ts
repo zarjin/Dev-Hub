@@ -5,19 +5,19 @@ import {
   userLogout,
   checkAuthStatus,
   refreshToAccessTokenGenerate,
-} from "../controllers/auth.controller";
+} from "../controllers/auth.controller.js";
 import { validate } from "../middleware/validation.middleware";
 import {
   loginValidationSchema,
   registerValidationSchema,
-} from "../validation/validation.schema";
+} from "../validation/validation.schema.js";
 import { authenticate } from "../middleware/auth.middleware";
 
 const authRoute = express.Router();
 
 authRoute.post("/register", validate(registerValidationSchema), userRegister);
 authRoute.post("/login", validate(loginValidationSchema), userLogin);
-authRoute.post("/logout", authenticate, checkAuthStatus);
+authRoute.get("/check-auth", authenticate, checkAuthStatus);
 authRoute.post("/logout", authenticate, userLogout);
 authRoute.post("/accessToken", refreshToAccessTokenGenerate);
 

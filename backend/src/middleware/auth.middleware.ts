@@ -1,4 +1,4 @@
-import { verifyAccessToken } from "./../utils/jwt.utils";
+import { verifyAccessToken } from "../utils/jwt.utils";
 import type { Request, Response, NextFunction } from "express";
 import type { AuthUserPayload } from "../types/types";
 
@@ -14,7 +14,7 @@ export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   const bearerHeader = req.headers.authorization;
 
   const headerToken = bearerHeader?.startsWith("Bearer ")
@@ -26,18 +26,19 @@ export const authenticate = async (
   const token = headerToken || cookieToken;
 
   if (!token) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Access token is missing or unauthorized",
     });
+    return;
   }
 
   try {
     const decoded = verifyAccessToken(token) as AuthUserPayload;
     req.user = decoded;
-    return next();
-  } catch (error) {
-    return res.status(401).json({
+    next();
+  } catch {
+    res.status(401).json({
       success: false,
       message: "Invalid or expired access token",
     });

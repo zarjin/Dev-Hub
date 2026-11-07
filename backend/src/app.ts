@@ -35,6 +35,6 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.use("auth/api/v1", authRoute);
+app.use("/auth/api/v1", authRoute);
 
 export default app;
