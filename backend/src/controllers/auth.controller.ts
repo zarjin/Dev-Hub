@@ -139,3 +139,22 @@ export const generateNewAccessToken = async (req: Request, res: Response) => {
       .json({ message: getReasonPhrase(status) });
   }
 };
+
+export const checkAuthStatus = (req: Request, res: Response) => {
+  try {
+    const HEADER_AUTHORIZATION = req.headers.authorization;
+    const token = HEADER_AUTHORIZATION?.split(" ")[1];
+    if (!token) {
+      return res
+
+        .status(StatusCodes.UNAUTHORIZED)
+        .json({ message: getReasonPhrase(status) });
+    }
+    return res.status(StatusCodes.OK).json({ authenticated: true });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: getReasonPhrase(status) });
+  }
+};
